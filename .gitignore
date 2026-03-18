@@ -1,0 +1,15 @@
+# Environnement virtuel
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# fichiers système
+.DS_Store
+
+# fichiers de logs
+*.log
