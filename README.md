@@ -1,18 +1,22 @@
 # Prédiction du State of Health (SoH) des Batteries Li-ion
 ## Deep Learning avec LSTM
 
+---
+
 ## Objectif du projet:
 
 Ce projet vise à prédire le State of Health (SoH) d’une batterie lithium-ion à partir de mesures temporelles issues de cycles de charge/décharge.
 
-Le SoH représente le niveau de dégradation de la batterie (100% = état neuf).
+Le SoH représente le niveau de dégradation de la batterie (100% = état neuf).  
 Sa prédiction est un enjeu clé pour :
 
-- la maintenance prédictive
-- la gestion énergétique
-- les véhicules électriques
+- la maintenance prédictive  
+- la gestion énergétique  
+- les véhicules électriques  
 
 L’approche utilisée repose sur un modèle LSTM (Long Short-Term Memory), adapté aux données séquentielles.
+
+---
 
 ## Approche générale:
 
@@ -22,14 +26,16 @@ Transformer les données brutes en séquences temporelles (fenêtres glissantes)
 
 Le pipeline complet est :
 
-- Analyse exploratoire (EDA)
-- Nettoyage des données
-- Construction de séquences temporelles
-- Split par batterie (anti data leakage)
-- Normalisation
-- Baselines (Ridge, MLP)
-- Modèle LSTM
-- Évaluation multi-niveaux (fenêtre + cycle + batterie)
+- Analyse exploratoire (EDA)  
+- Nettoyage des données  
+- Construction de séquences temporelles  
+- Split par batterie (anti data leakage)  
+- Normalisation  
+- Baselines (Ridge, MLP)  
+- Modèle LSTM  
+- Évaluation multi-niveaux (fenêtre + cycle + batterie)  
+
+---
 
 ## Structure du projet
 
@@ -55,7 +61,10 @@ projet_soh_batterie/
 ├── 03_modele_lstm.ipynb
 ├── 04_evaluation.ipynb
 └── README.md
-Installation
+
+
+
+##Installation
 pip install pandas numpy matplotlib scikit-learn tensorflow jupyter
 
 Versions testées :
@@ -66,7 +75,8 @@ TensorFlow 2.21
 
 scikit-learn ≥ 1.3
 
-Exécution
+
+##Exécution
 
 Exécuter les notebooks dans l’ordre :
 
@@ -74,27 +84,29 @@ Exécuter les notebooks dans l’ordre :
 
 Chaque étape produit des artefacts utilisés par la suivante (prepared_data.pkl, modèle entraîné, etc.).
 
-Données
-Variable	Description
-battery_id	Identifiant batterie
-cycle_number	Numéro du cycle
-Voltage_measured	Tension (V)
-Current_measured	Courant (A)
-Temperature_measured	Température (°C)
-SoC	State of Charge (%)
-SoH	State of Health (%) — cible
+## Données
+
+| Variable             | Description                 |
+| -------------------- | --------------------------- |
+| battery_id           | Identifiant batterie        |
+| cycle_number         | Numéro du cycle             |
+| Voltage_measured     | Tension (V)                 |
+| Current_measured     | Courant (A)                 |
+| Temperature_measured | Température (°C)            |
+| SoC                  | State of Charge (%)         |
+| SoH                  | State of Health (%) — cible |
 
 Dataset :
 
-24 batteries
+-24 batteries
 
-29 180 lignes
+-29 180 lignes
 
-1 459 cycles (battery × cycle)
+-1 459 cycles (battery × cycle)
 
-0 valeur manquante
+-0 valeur manquante
 
-Méthodologie
+##Méthodologie
 Nettoyage
 
 Suppression des anomalies :
@@ -105,7 +117,7 @@ Température > 60°C (160 lignes)
 
 Impact total : ~1% du dataset
 
-Features utilisées
+##Features utilisées
 
 Voltage
 
@@ -119,11 +131,10 @@ cycle_number
 
 cycle_number agit comme un proxy temporel du vieillissement.
 
-Fenêtres glissantes
+##Fenêtres glissantes
 
 Chaque cycle contient 20 points temporels.
 On construit des séquences de longueur :
-
 WINDOW = 10
 
 → soit 50% d’un cycle
@@ -174,20 +185,22 @@ Input (batch, 10, 5)
 ~31k paramètres
 
 Optimizer : Adam
-
 Loss : MSE
-
 Metric : MAE
 
 EarlyStopping + ReduceLROnPlateau
 
-Résultats
+
+##Résultats
 Comparaison des modèles
-Modèle	MAE (%)	RMSE (%)	R²
-Ridge	4.3354	5.0274	0.3634
-MLP	2.9219	3.6215	0.6696
-LSTM ★	2.4679	2.8835	0.7906
-Interprétation
+
+| Modèle | MAE (%) | RMSE (%) | R²     |
+| ------ | ------- | -------- | ------ |
+| Ridge  | 4.3354  | 5.0274   | 0.3634 |
+| MLP    | 2.9219  | 3.6215   | 0.6696 |
+| LSTM ★ | 2.4679  | 2.8835   | 0.7906 |
+
+##Interprétation:
 
 Le LSTM améliore fortement Ridge (+1.87% MAE)
 
@@ -200,20 +213,21 @@ Pourquoi ?
 
 Avec stride=1, un cycle génère 11 fenêtres très similaires → biais potentiel.
 
-Résultats
-Niveau	N	MAE	RMSE	R²
-Fenêtre	2156	2.4679	2.8835	0.7906
-Cycle (référence) ★	196	2.4541	2.8535	0.7949
+| Niveau              | N    | MAE    | RMSE   | R²     |
+| ------------------- | ---- | ------ | ------ | ------ |
+| Fenêtre             | 2156 | 2.4679 | 2.8835 | 0.7906 |
+| Cycle (référence) ★ | 196  | 2.4541 | 2.8535 | 0.7949 |
 
 L’évaluation cycle est plus représentative.
 
-Analyse par batterie
-Batterie	MAE	RMSE	R²
-B0005	2.72	3.02	0.828
-B0029	2.55	2.98	0.120
-B0039	1.43	2.13	0.305
+##Analyse par batterie
+| Batterie | MAE  | RMSE | R²    |
+| -------- | ---- | ---- | ----- |
+| B0005    | 2.72 | 3.02 | 0.828 |
+| B0029    | 2.55 | 2.98 | 0.120 |
+| B0039    | 1.43 | 2.13 | 0.305 |
 
-Analyse
+##Analyse:
 
 Le R² global est dominé par B0005 (beaucoup de données)
 
@@ -235,7 +249,7 @@ Ratio val/train : 0.68
 
 Pas de surapprentissage significatif
 
-Limites
+##Limites:
 
 Généralisation
 
@@ -257,7 +271,7 @@ Fenêtres corrélées
 
 biais potentiel au niveau fenêtre
 
-Conclusion
+##Conclusion:
 
 Le projet montre que :
 
@@ -271,7 +285,7 @@ Cependant :
 
 Les performances doivent être confirmées avec plus de batteries et une validation groupée.
 
-Perspectives
+##Perspectives:
 
 À partir de l’analyse du modèle et de recherches complémentaires que j'ai effectuee , plusieurs pistes d’amélioration peuvent être envisagées :
 
@@ -286,7 +300,3 @@ les Temporal CNN (TCN), souvent plus stables et rapides à entraîner que les LS
 Data augmentation ciblée
 
 Augmenter le jeu d’entraînement en générant des profils rares ou atypiques (ex : dégradations brutales), afin d’améliorer la capacité du modèle à généraliser sur des batteries non vues.
-
-Remarque finale
-
-Ce projet constitue une base solide pour la prédiction du SoH, avec une approche rigoureuse et des résultats cohérents.
