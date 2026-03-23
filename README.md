@@ -1,17 +1,51 @@
-# Prédiction du State of Health (SoH) des Batteries Li-ion
-## Projet Deep Learning — LSTM
+Prédiction du State of Health (SoH) des Batteries Li-ion
+Deep Learning avec LSTM
+ Objectif du projet:
 
----
+Ce projet vise à prédire le State of Health (SoH) d’une batterie lithium-ion à partir de mesures temporelles issues de cycles de charge/décharge.
 
-## Structure du projet
+Le SoH représente le niveau de dégradation de la batterie (100% = état neuf).
+Sa prédiction est un enjeu clé pour :
 
-```
+la maintenance prédictive,
+
+la gestion énergétique,
+
+les véhicules électriques.
+
+L’approche utilisée repose sur un modèle LSTM (Long Short-Term Memory), adapté aux données séquentielles.
+
+ Approche générale:
+
+L’idée principale du projet est la suivante :
+
+Transformer les données brutes en séquences temporelles (fenêtres glissantes), puis apprendre un modèle capable de prédire le SoH à partir de ces séquences.
+
+Le pipeline complet est :
+
+Analyse exploratoire (EDA)
+
+Nettoyage des données
+
+Construction de séquences temporelles
+
+Split par batterie (anti data leakage)
+
+Normalisation
+
+Baselines (Ridge, MLP)
+
+Modèle LSTM
+
+Évaluation multi-niveaux (fenêtre + cycle + batterie)
+
+📁 Structure du projet
 projet_soh_batterie/
 ├── data/
-│   ├── battery_health_dataset.csv     ← Dataset (29 180 lignes × 7 colonnes)
-│   └── prepared_data.pkl              ← Pipeline sérialisé (généré par 02)
+│   ├── battery_health_dataset.csv
+│   └── prepared_data.pkl
 ├── models/
-│   └── best_model.keras               ← Meilleurs poids LSTM (généré par 03)
+│   └── best_model.keras
 ├── figures/
 │   ├── fig_cycles_distribution.png
 │   ├── fig_soh_evolution.png
@@ -22,153 +56,238 @@ projet_soh_batterie/
 │   ├── fig_soh_per_battery.png
 │   ├── fig_b0029_analysis.png
 │   └── fig_b0039_analysis.png
-├── 01_exploration.ipynb               ← EDA + 10 questions de réflexion de l'énoncé
-├── 02_preparation.ipynb               ← Nettoyage + Fenêtres + Split + Normalisation
-├── 03_modele_lstm.ipynb               ← Baseline Ridge + Baseline MLP + LSTM + Entraînement
-├── 04_evaluation.ipynb                ← Métriques fenêtre + cycle + Analyse par batterie
+├── 01_exploration.ipynb
+├── 02_preparation.ipynb
+├── 03_modele_lstm.ipynb
+├── 04_evaluation.ipynb
 └── README.md
-```
-
----
-
-## Prérequis et installation
-
-```bash
+⚙️ Installation
 pip install pandas numpy matplotlib scikit-learn tensorflow jupyter
-```
 
-**Versions testées :** Python 3.10.11 · TensorFlow 2.21.0 · scikit-learn ≥ 1.3
+Versions testées :
 
----
+Python 3.10.11
 
-## Exécution dans l'ordre
+TensorFlow 2.21
 
-```
+scikit-learn ≥ 1.3
+
+▶️ Exécution
+
+Exécuter les notebooks dans l’ordre :
+
 01_exploration → 02_preparation → 03_modele_lstm → 04_evaluation
-```
 
-**Important :** chaque notebook lit `data/prepared_data.pkl` produit par le notebook précédent.  
-Le modèle entraîné est sauvegardé dans `models/best_model.keras` et rechargé par `04_evaluation`.
+Chaque étape produit des artefacts utilisés par la suivante (prepared_data.pkl, modèle entraîné, etc.).
 
----
+ Données
+Variable	Description
+battery_id	Identifiant batterie
+cycle_number	Numéro du cycle
+Voltage_measured	Tension (V)
+Current_measured	Courant (A)
+Temperature_measured	Température (°C)
+SoC	State of Charge (%)
+SoH	State of Health (%) — cible
 
-## Données
+Dataset :
 
-| Variable | Description |
-|----------|-------------|
-| `battery_id` | Identifiant de la batterie |
-| `cycle_number` | Numéro du cycle charge/décharge (1 → 197) |
-| `Voltage_measured` | Tension mesurée (V) |
-| `Current_measured` | Courant mesuré (A) |
-| `Temperature_measured` | Température (°C) |
-| `SoC` | État de charge (%) |
-| `SoH` | **État de santé (%) — variable cible** |
+24 batteries
 
-**24 batteries · 29 180 lignes · 1 459 combinaisons (batterie × cycle) · 0 valeur manquante**
+29 180 lignes
 
-> Note : `cycle_number` va de 1 à 197 (max global). Les 1 459 cycles distincts correspondent
-> aux combinaisons uniques `(battery_id, cycle_number)` — chaque batterie ayant son propre compteur.
+1 459 cycles (battery × cycle)
 
----
+0 valeur manquante
 
-## Méthodologie
+⚙️ Méthodologie
+Nettoyage
 
-| Étape | Implémentation |
-|-------|----------------|
-| Nettoyage | SoH > 100% supprimés (140 lignes) + Temp > 60°C supprimés (160 lignes) — 1% du dataset |
-| Features | Tension, Courant, Température, SoC, Numéro de cycle |
-| Fenêtre glissante | WINDOW = 10 bins (50% du cycle de 20 bins — validé par comparaison 5/10/15) |
-| Split | Par **batterie entière** : 18 train / 3 val / 3 test — aucun data leakage |
-| Normalisation X | `MinMaxScaler` (fit sur train uniquement) |
-| Normalisation y | `StandardScaler` (fit sur train uniquement) |
-| Baseline 1 | Ridge Regression sur features agrégées (mean, std, min, max) |
-| Baseline 2 | MLP (Dense 64→32→16→1) sur séquences aplaties — valide l'apport du LSTM |
-| Modèle | LSTM(64) → Dropout(0.30) → BatchNorm → LSTM(32) → Dropout(0.25) → Dense(16) → Dense(1) |
-| Entraînement | Adam lr=0.001 · batch=64 · EarlyStopping patience=8 · ReduceLROnPlateau |
+Suppression des anomalies :
 
----
+SoH > 100% (140 lignes)
 
-## Architecture LSTM
+Température > 60°C (160 lignes)
 
-```
+Impact total : ~1% du dataset
+
+Features utilisées
+
+Voltage
+
+Current
+
+Temperature
+
+SoC
+
+cycle_number
+
+   cycle_number agit comme un proxy temporel du vieillissement.
+
+Fenêtres glissantes
+
+Chaque cycle contient 20 points temporels.
+On construit des séquences de longueur :
+
+WINDOW = 10
+
+→ soit 50% d’un cycle
+
+Chaque séquence est associée au SoH du cycle.
+
+Split (point critique)
+
+Le split est réalisé par batterie entière :
+
+Train : 18 batteries
+
+Validation : 3 batteries
+
+Test : 3 batteries
+
+→ Aucun data leakage
+
+C’est un point fondamental pour garantir une évaluation réaliste.
+
+Normalisation
+
+X : MinMaxScaler
+
+y : StandardScaler
+
+Fit uniquement sur le train
+
+🧪 Baselines
+1. Ridge Regression
+
+Features agrégées (mean, std, min, max)
+
+2. MLP (sans mémoire)
+
+Dense 64 → 32 → 16 → 1
+
+Permet de vérifier si la temporalité apporte un gain
+
+🤖 Modèle LSTM
 Input (batch, 10, 5)
-  → LSTM(64, return_sequences=True) + Dropout(0.30)
-  → BatchNormalization
-  → LSTM(32, return_sequences=False) + Dropout(0.25)
-  → Dense(16, relu)
-  → Dense(1)                    ← SoH prédit (%)
-Total : 31 137 paramètres
-```
+ → LSTM(64) + Dropout(0.30)
+ → BatchNormalization
+ → LSTM(32) + Dropout(0.25)
+ → Dense(16)
+ → Dense(1)
 
----
+~31k paramètres
 
-## Résultats
+Optimizer : Adam
 
-### Comparaison des modèles
+Loss : MSE
 
-| Métrique | LSTM ★ | MLP Baseline | Ridge Baseline |
-|----------|--------|--------------|----------------|
-| MAE (%)  | **2.45** | 2.86 | 4.34 |
-| RMSE (%) | **3.12** | 3.61 | 5.03 |
-| R² global | **0.755** | 0.672 | 0.363 |
+Metric : MAE
 
-> Le LSTM surpasse le MLP de **+0.41% MAE**, confirmant que la mémoire temporelle
-> apporte un gain réel au-delà de la simple lecture des valeurs instantanées.
-> Le LSTM améliore Ridge de **+1.89% MAE** — la complexité du modèle est justifiée.
+EarlyStopping + ReduceLROnPlateau
 
-### Évaluation à deux niveaux
+📈 Résultats
+Comparaison des modèles
+Modèle	MAE (%)	RMSE (%)	R²
+Ridge	4.3354	5.0274	0.3634
+MLP	2.9219	3.6215	0.6696
+LSTM ★	2.4679	2.8835	0.7906
+➜ Interprétation
 
-| Niveau | N | MAE (%) | RMSE (%) | R² |
-|--------|---|---------|----------|----|
-| Fenêtre (brut) | 2 156 | 2.4503 | 3.1169 | 0.7553 |
-| **Cycle (honnête) ★** | **196** | **2.4474** | **3.0875** | **0.7599** |
+Le LSTM améliore fortement Ridge (+1.87% MAE)
 
-> Avec stride=1 et WINDOW=10, chaque cycle génère 11 fenêtres quasi-identiques.
-> L'évaluation **au niveau cycle** (prédiction moyennée par cycle) est l'indicateur de référence,
-> car elle évite de compter 11 fois le même cycle.
+Le LSTM bat le MLP (+0.45% MAE)
+➡️ La mémoire temporelle apporte un gain réel
 
-### Résultats par batterie de test
+📊 Évaluation à deux niveaux
+Pourquoi ?
 
-| Batterie | Cycles | MAE (%) | RMSE (%) | R² | Statut |
-|----------|--------|---------|----------|----|--------|
-| B0005 | 123 | 2.61 | 3.30 | 0.796 | ✅ Bon |
-| B0029 | 40 | 2.58 | 3.02 | 0.093 | 🔴 Faible |
-| B0039 | 33 | 1.70 | 2.46 | 0.071 | 🔴 Faible |
+Avec stride=1, un cycle génère 11 fenêtres très similaires → biais potentiel.
 
-> Le R² global (0.755) est dominé par B0005 qui représente 63% des fenêtres de test.
-> Le R² moyen non pondéré (0.320) reflète mieux la généralisation réelle sur batteries inconnues.
+Résultats
+Niveau	N	MAE	RMSE	R²
+Fenêtre	2156	2.4679	2.8835	0.7906
+Cycle (référence) ★	196	2.4541	2.8535	0.7949
 
-B0039 présente un profil "plateau + chute brutale" (SoH : 87.24% → 80.43%, variation -6.81%)
-absent du jeu d'entraînement. Le LSTM reproduit une décroissance progressive qu'il a apprise,
-mais ne peut pas anticiper un comportement qu'il n'a jamais vu.
-**Ce n'est pas un bug — c'est une limite fondamentale de l'apprentissage supervisé.**
+➡️ L’évaluation cycle est plus représentative.
 
-### Surapprentissage
+🔍 Analyse par batterie
+Batterie	MAE	RMSE	R²
+B0005	2.72	3.02	0.828
+B0029	2.55	2.98	0.120
+B0039	1.43	2.13	0.305
+Analyse
 
-| Indicateur | Valeur |
-|-----------|--------|
-| Époques réalisées | 11 |
-| Meilleure val_loss | 0.2642 @ époque 3 |
-| Train loss @ époque 3 | 0.3529 |
-| **Ratio val/train (best)** | **0.75** |
+Le R² global est dominé par B0005 (beaucoup de données)
 
-→ **Pas de surapprentissage significatif** (ratio < 1.5).  
-`restore_best_weights=True` garantit l'utilisation des poids de l'époque 3.
+Le R² moyen = 0.418 → meilleure mesure de généralisation
 
----
+Cas intéressant
 
-## Limites identifiées
+B0039 présente une chute brutale du SoH non vue en train.
 
-1. **Généralisation** : profils atypiques non représentés en entraînement (B0039, R²=0.071) — solution : diversifier le jeu d'entraînement avec des profils "plateau+chute"
-2. **R² global pondéré** : dominé par B0005 (63% des données de test) — préférer le R² moyen non pondéré (0.320) pour évaluer la robustesse réelle
-3. **`cycle_number` comme feature** : introduit un proxy temporel — le modèle peut apprendre "cycle élevé = SoH bas" au lieu des signatures électrochimiques pures
-4. **Fenêtres chevauchantes** : stride=1 génère 11 fenêtres autocorrélées par cycle — les métriques au niveau fenêtre surestiment légèrement les performances réelles
+➡️ Le modèle prédit une décroissance lisse
+➡️ Limite normale du supervised learning
 
----
+📉 Surapprentissage
 
-## Métriques cibles
+Meilleure époque : 4
 
-- LSTM > Ridge → ✅ amélioration +1.89% MAE (+52% de réduction d'erreur)
-- LSTM > MLP → ✅ la séquentialité apporte un gain mesurable (+0.41% MAE)
-- Pas de surapprentissage → ✅ ratio val/train = 0.75 à la meilleure époque
-- 86.2% des prédictions avec erreur < 5% → ✅ utilisable en contexte industriel
+Ratio val/train : 0.68
+
+➡️ Pas de surapprentissage significatif
+
+ Limites
+
+Généralisation
+
+Peu de batteries test
+
+profils atypiques mal capturés
+
+Variable cycle_number
+
+facilite la prédiction
+
+mais réduit l’interprétabilité physique
+
+Un seul split
+
+résultats dépendants des batteries choisies
+
+Fenêtres corrélées
+
+biais potentiel au niveau fenêtre
+
+ Conclusion
+
+Le projet montre que :
+
+Le LSTM permet une prédiction précise du SoH (~2.45% MAE)
+
+La temporalité apporte une réelle valeur
+
+Le pipeline est robuste et sans data leakage
+
+Cependant :
+
+Les performances doivent être confirmées avec plus de batteries et une validation groupée.
+
+Perspectives
+
+À partir de l’analyse du modèle et de recherches complémentaires que j'ai effectuee , plusieurs pistes d’amélioration peuvent être envisagées :
+
+Modèles plus avancés
+Explorer des architectures récentes adaptées aux séries temporelles, comme :
+
+les Transformers (meilleure capture des dépendances longues),
+
+les Temporal CNN (TCN), souvent plus stables et rapides à entraîner que les LSTM.
+
+Data augmentation ciblée
+Augmenter le jeu d’entraînement en générant des profils rares ou atypiques (ex : dégradations brutales), afin d’améliorer la capacité du modèle à généraliser sur des batteries non vues.
+
+ Remarque finale
+
+Ce projet constitue une base solide pour la prédiction du SoH, avec une approche rigoureuse et des résultats cohérents.
