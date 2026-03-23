@@ -1,21 +1,20 @@
-Prédiction du State of Health (SoH) des Batteries Li-ion
-Deep Learning avec LSTM
- Objectif du projet:
+# Prédiction du State of Health (SoH) des Batteries Li-ion
+## Deep Learning avec LSTM
+
+## Objectif du projet:
 
 Ce projet vise à prédire le State of Health (SoH) d’une batterie lithium-ion à partir de mesures temporelles issues de cycles de charge/décharge.
 
 Le SoH représente le niveau de dégradation de la batterie (100% = état neuf).
 Sa prédiction est un enjeu clé pour :
 
-la maintenance prédictive,
-
-la gestion énergétique,
-
-les véhicules électriques.
+- la maintenance prédictive
+- la gestion énergétique
+- les véhicules électriques
 
 L’approche utilisée repose sur un modèle LSTM (Long Short-Term Memory), adapté aux données séquentielles.
 
- Approche générale:
+## Approche générale:
 
 L’idée principale du projet est la suivante :
 
@@ -23,23 +22,18 @@ Transformer les données brutes en séquences temporelles (fenêtres glissantes)
 
 Le pipeline complet est :
 
-Analyse exploratoire (EDA)
+- Analyse exploratoire (EDA)
+- Nettoyage des données
+- Construction de séquences temporelles
+- Split par batterie (anti data leakage)
+- Normalisation
+- Baselines (Ridge, MLP)
+- Modèle LSTM
+- Évaluation multi-niveaux (fenêtre + cycle + batterie)
 
-Nettoyage des données
+## Structure du projet
 
-Construction de séquences temporelles
-
-Split par batterie (anti data leakage)
-
-Normalisation
-
-Baselines (Ridge, MLP)
-
-Modèle LSTM
-
-Évaluation multi-niveaux (fenêtre + cycle + batterie)
-
-📁 Structure du projet
+```bash
 projet_soh_batterie/
 ├── data/
 │   ├── battery_health_dataset.csv
@@ -61,7 +55,7 @@ projet_soh_batterie/
 ├── 03_modele_lstm.ipynb
 ├── 04_evaluation.ipynb
 └── README.md
-⚙️ Installation
+Installation
 pip install pandas numpy matplotlib scikit-learn tensorflow jupyter
 
 Versions testées :
@@ -72,7 +66,7 @@ TensorFlow 2.21
 
 scikit-learn ≥ 1.3
 
-▶️ Exécution
+Exécution
 
 Exécuter les notebooks dans l’ordre :
 
@@ -80,7 +74,7 @@ Exécuter les notebooks dans l’ordre :
 
 Chaque étape produit des artefacts utilisés par la suivante (prepared_data.pkl, modèle entraîné, etc.).
 
- Données
+Données
 Variable	Description
 battery_id	Identifiant batterie
 cycle_number	Numéro du cycle
@@ -100,7 +94,7 @@ Dataset :
 
 0 valeur manquante
 
-⚙️ Méthodologie
+Méthodologie
 Nettoyage
 
 Suppression des anomalies :
@@ -123,7 +117,7 @@ SoC
 
 cycle_number
 
-   cycle_number agit comme un proxy temporel du vieillissement.
+cycle_number agit comme un proxy temporel du vieillissement.
 
 Fenêtres glissantes
 
@@ -158,7 +152,7 @@ y : StandardScaler
 
 Fit uniquement sur le train
 
-🧪 Baselines
+Baselines
 1. Ridge Regression
 
 Features agrégées (mean, std, min, max)
@@ -169,7 +163,7 @@ Dense 64 → 32 → 16 → 1
 
 Permet de vérifier si la temporalité apporte un gain
 
-🤖 Modèle LSTM
+Modèle LSTM
 Input (batch, 10, 5)
  → LSTM(64) + Dropout(0.30)
  → BatchNormalization
@@ -187,20 +181,21 @@ Metric : MAE
 
 EarlyStopping + ReduceLROnPlateau
 
-📈 Résultats
+Résultats
 Comparaison des modèles
 Modèle	MAE (%)	RMSE (%)	R²
 Ridge	4.3354	5.0274	0.3634
 MLP	2.9219	3.6215	0.6696
 LSTM ★	2.4679	2.8835	0.7906
-➜ Interprétation
+Interprétation
 
 Le LSTM améliore fortement Ridge (+1.87% MAE)
 
 Le LSTM bat le MLP (+0.45% MAE)
-➡️ La mémoire temporelle apporte un gain réel
 
-📊 Évaluation à deux niveaux
+La mémoire temporelle apporte un gain réel
+
+Évaluation à deux niveaux
 Pourquoi ?
 
 Avec stride=1, un cycle génère 11 fenêtres très similaires → biais potentiel.
@@ -210,13 +205,14 @@ Niveau	N	MAE	RMSE	R²
 Fenêtre	2156	2.4679	2.8835	0.7906
 Cycle (référence) ★	196	2.4541	2.8535	0.7949
 
-➡️ L’évaluation cycle est plus représentative.
+L’évaluation cycle est plus représentative.
 
-🔍 Analyse par batterie
+Analyse par batterie
 Batterie	MAE	RMSE	R²
 B0005	2.72	3.02	0.828
 B0029	2.55	2.98	0.120
 B0039	1.43	2.13	0.305
+
 Analyse
 
 Le R² global est dominé par B0005 (beaucoup de données)
@@ -227,18 +223,19 @@ Cas intéressant
 
 B0039 présente une chute brutale du SoH non vue en train.
 
-➡️ Le modèle prédit une décroissance lisse
-➡️ Limite normale du supervised learning
+Le modèle prédit une décroissance lisse
 
-📉 Surapprentissage
+Limite normale du supervised learning
+
+Surapprentissage
 
 Meilleure époque : 4
 
 Ratio val/train : 0.68
 
-➡️ Pas de surapprentissage significatif
+Pas de surapprentissage significatif
 
- Limites
+Limites
 
 Généralisation
 
@@ -260,7 +257,7 @@ Fenêtres corrélées
 
 biais potentiel au niveau fenêtre
 
- Conclusion
+Conclusion
 
 Le projet montre que :
 
@@ -279,15 +276,17 @@ Perspectives
 À partir de l’analyse du modèle et de recherches complémentaires que j'ai effectuee , plusieurs pistes d’amélioration peuvent être envisagées :
 
 Modèles plus avancés
+
 Explorer des architectures récentes adaptées aux séries temporelles, comme :
 
-les Transformers (meilleure capture des dépendances longues),
+les Transformers (meilleure capture des dépendances longues)
 
-les Temporal CNN (TCN), souvent plus stables et rapides à entraîner que les LSTM.
+les Temporal CNN (TCN), souvent plus stables et rapides à entraîner que les LSTM
 
 Data augmentation ciblée
+
 Augmenter le jeu d’entraînement en générant des profils rares ou atypiques (ex : dégradations brutales), afin d’améliorer la capacité du modèle à généraliser sur des batteries non vues.
 
- Remarque finale
+Remarque finale
 
 Ce projet constitue une base solide pour la prédiction du SoH, avec une approche rigoureuse et des résultats cohérents.
